@@ -5,7 +5,7 @@ import { Bot, BotIcon, DotIcon, RefreshCcw, BarChart2, PieChart as PieIcon, Layo
 import Link from 'next/link'
 import React, { useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react'
 import gsap from 'gsap';
-import { generateEmbeddings } from '@/ai/embeding'
+import { generateEmbeddings } from '@/embedings'
 import PdfUploader from '@/components/pdfupload'
 import { sources } from '@/lib/utils'
 import { AnimatePresence, motion } from 'motion/react'
@@ -28,7 +28,7 @@ import {
 } from 'recharts';
 import { SLICE_COLORS } from '@/lib/utils'
 
- 
+
 const CustomTooltip = ({ active, payload, label }: any) => {
   if (active && payload?.length) {
     return (
@@ -244,7 +244,7 @@ const MyChatBot = () => {
       </div>
 
       {/*   Monitoring view   */}
-      {viewMode === 'monitoring' &&  (
+      {viewMode === 'monitoring' && (
 
         isLoading ? (
           <>
@@ -252,151 +252,151 @@ const MyChatBot = () => {
 
           </>
         ) :
-        <>
+          <>
 
-          <div className='px-5 mb-12  flex lg:grid-cols-3 gap-6'>
+            <div className='px-5 mb-12  flex lg:grid-cols-3 gap-6'>
 
-            {/* Bar Chart   */}
-            <div className='chart-reveal bg-[#f7f9f5] flex-1 border border-[#c9d0c5] rounded-3xl p-6  shadow-[-3px_2px_1px_#0000005e]'>
-              <div className='flex items-center gap-2 mb-5'>
-                <div className='bg-[#cff45f] p-2 rounded-xl'>
-                  <BarChart2 size={18} className='text-[#17221d]' />
+              {/* Bar Chart   */}
+              <div className='chart-reveal bg-[#f7f9f5] flex-1 border border-[#c9d0c5] rounded-3xl p-6  shadow-[-3px_2px_1px_#0000005e]'>
+                <div className='flex items-center gap-2 mb-5'>
+                  <div className='bg-[#cff45f] p-2 rounded-xl'>
+                    <BarChart2 size={18} className='text-[#17221d]' />
+                  </div>
+                  <div>
+                    <h2 className='font-bold text-[#17221d] text-base leading-tight'>Conversations per Chatbot</h2>
+                    <p className='text-xs text-[#64716a]'>Total usage by agent</p>
+                  </div>
                 </div>
-                <div>
-                  <h2 className='font-bold text-[#17221d] text-base leading-tight'>Conversations per Chatbot</h2>
-                  <p className='text-xs text-[#64716a]'>Total usage by agent</p>
-                </div>
+
+                <ResponsiveContainer width="100%" height={260}>
+                  <BarChart data={barData} barSize={25} margin={{ top: 4, right: 10, left: -10, bottom: 10 }}>
+                    <CartesianGrid strokeDasharray="1 1" stroke="#c9d0c5" vertical={false} />
+                    <XAxis
+                      dataKey="name"
+                      tick={{ fill: '#64716a', fontSize: 10, fontWeight: 600 }}
+                      tickLine={false}
+                      axisLine={false}
+                      interval={0}
+                    />
+                    <YAxis
+                      tick={{ fill: '#64716a', fontSize: 10 }}
+                      tickLine={false}
+                      axisLine={false}
+                      allowDecimals={false}
+                    />
+                    <Tooltip content={<BarTooltip />} cursor={{ fill: '#64716a18' }} />
+                    <Bar dataKey="conversations" radius={[4, 4, 0, 0]}>
+                      {barData.map((_: any, index: number) => (
+                        <Cell key={`cell-${index}`} fill={SLICE_COLORS[index % SLICE_COLORS.length]} />
+                      ))}
+                    </Bar>
+                  </BarChart>
+                </ResponsiveContainer>
+                {barData[0] && (
+                  <p className='text-center text-xs text-[#64716a] mt-1 font-medium'>
+                    🏆 Most active: <span className='text-[#17221d] font-bold'>{barData[0].name}</span> ({barData[0].conversations} chats)
+                  </p>
+                )}
+
               </div>
 
-              <ResponsiveContainer width="100%" height={260}>
-                <BarChart data={barData} barSize={25} margin={{ top: 4, right: 10, left: -10, bottom: 10 }}>
-                  <CartesianGrid strokeDasharray="1 1" stroke="#c9d0c5" vertical={false} />
-                  <XAxis
-                    dataKey="name"
-                    tick={{ fill: '#64716a', fontSize: 10, fontWeight: 600 }}
-                    tickLine={false}
-                    axisLine={false}
-                    interval={0}
+              {/* Pie/Donut Chart — Conversations by AI model source */}
+              <div className='chart-reveal bg-[#f7f9f5]  border border-[#c9d0c5] rounded-3xl p-6  shadow-[-3px_2px_1px_#0000005e]'>
+                <div className='flex items-center gap-2 mb-5'>
+                  <div className='bg-[#64716a] p-2 rounded-xl'>
+                    <PieIcon size={18} className='text-[#cff45f]' />
+                  </div>
+                  <div>
+                    <h2 className='font-bold text-[#17221d] text-base leading-tight'>AI Model Usage</h2>
+                    <p className='text-xs text-[#64716a]'>Which model drives the most conversations</p>
+                  </div>
+                </div>
+                {pieData.length > 0 ? (
+                  <>
+                    <ResponsiveContainer width="100%" height={230}>
+                      <PieChart>
+                        <Pie
+                          data={pieData}
+                          cx="50%"
+                          cy="50%"
+                          innerRadius={60}
+                          outerRadius={95}
+                          paddingAngle={3}
+                          dataKey="value"
+                        >
+                          {pieData.map((_: any, index: number) => (
+                            <Cell key={`cell-${index}`} fill={SLICE_COLORS[index % SLICE_COLORS.length]} />
+                          ))}
+                        </Pie>
+                        <Tooltip content={<PieTooltip />} />
+                        <Legend
+                          iconType="circle"
+                          iconSize={8}
+                          formatter={(value) => (
+                            <span style={{ color: '#64716a', fontSize: 12, fontWeight: 600 }}>{value}</span>
+                          )}
+                        />
+                      </PieChart>
+                    </ResponsiveContainer>
+                    {topModel && (
+                      <p className='text-center text-xs text-[#64716a] mt-1 font-medium'>
+                        🤖 Top model: <span className='text-[#17221d] font-bold'>{topModel.name}</span> ({topModel.value} conversations)
+                      </p>
+                    )}
+                  </>
+                ) : (
+                  <div className='h-[230px] flex items-center justify-center text-[#64716a] text-sm'>
+                    No conversation data yet
+                  </div>
+                )}
+              </div>
+            </div>
+
+            <div className='chart-reveal bg-[#f7f9f5] flex-1 border border-[#c9d0c5] rounded-3xl p-6  shadow-[-3px_2px_1px_#0000005e] p-'>
+              <h3 className='font-bold mb-4'>Conversation Distribution</h3>
+              <ResponsiveContainer width="100%" height={300}>
+                <AreaChart data={barData}>
+                  <defs>
+                    <linearGradient id="colorConversations" x1="0" y1="0" x2="0" y2="1">
+                      <stop offset="5%" stopColor="#3B82F6" stopOpacity={0.9} />
+                      <stop offset="50%" stopColor="#6366F1" stopOpacity={0.5} />
+                      <stop offset="95%" stopColor="#6366F1" stopOpacity={0.05} />
+                    </linearGradient>
+                  </defs>
+
+                  <XAxis dataKey="name" />
+                  <YAxis />
+                  <Tooltip content={<CustomTooltip />} />
+
+                  <Area
+                    type="monotone"
+                    dataKey="conversations"
+                    stroke="#3B82F6"
+                    strokeWidth={3}
+                    fill="url(#colorConversations)"
+                    fillOpacity={1}
+                    dot={{
+                      r: 4,
+                      fill: "#3B82F6",
+                      stroke: "#fff",
+                      strokeWidth: 2,
+                    }}
+                    activeDot={{
+                      r: 7,
+                      fill: "#2563EB",
+                      stroke: "#fff",
+                      strokeWidth: 3,
+                    }}
                   />
-                  <YAxis
-                    tick={{ fill: '#64716a', fontSize: 10 }}
-                    tickLine={false}
-                    axisLine={false}
-                    allowDecimals={false}
-                  />
-                  <Tooltip content={<BarTooltip />} cursor={{ fill: '#64716a18' }} />
-                  <Bar dataKey="conversations"  radius={[4, 4, 0, 0]}>
-                    {barData.map((_: any, index: number) => (
-                      <Cell key={`cell-${index}`} fill={SLICE_COLORS[index % SLICE_COLORS.length]} />
-                    ))}
-                  </Bar>
-                </BarChart>
+                </AreaChart>
+
               </ResponsiveContainer>
-              {barData[0] && (
-                <p className='text-center text-xs text-[#64716a] mt-1 font-medium'>
-                  🏆 Most active: <span className='text-[#17221d] font-bold'>{barData[0].name}</span> ({barData[0].conversations} chats)
-                </p>
-              )}
-
             </div>
-
-            {/* Pie/Donut Chart — Conversations by AI model source */}
-            <div className='chart-reveal bg-[#f7f9f5]  border border-[#c9d0c5] rounded-3xl p-6  shadow-[-3px_2px_1px_#0000005e]'>
-              <div className='flex items-center gap-2 mb-5'>
-                <div className='bg-[#64716a] p-2 rounded-xl'>
-                  <PieIcon size={18} className='text-[#cff45f]' />
-                </div>
-                <div>
-                  <h2 className='font-bold text-[#17221d] text-base leading-tight'>AI Model Usage</h2>
-                  <p className='text-xs text-[#64716a]'>Which model drives the most conversations</p>
-                </div>
-              </div>
-              {pieData.length > 0 ? (
-                <>
-                  <ResponsiveContainer width="100%" height={230}>
-                    <PieChart>
-                      <Pie
-                        data={pieData}
-                        cx="50%"
-                        cy="50%"
-                        innerRadius={60}
-                        outerRadius={95}
-                        paddingAngle={3}
-                        dataKey="value"
-                      >
-                        {pieData.map((_: any, index: number) => (
-                          <Cell key={`cell-${index}`} fill={SLICE_COLORS[index % SLICE_COLORS.length]} />
-                        ))}
-                      </Pie>
-                      <Tooltip content={<PieTooltip />} />
-                      <Legend
-                        iconType="circle"
-                        iconSize={8}
-                        formatter={(value) => (
-                          <span style={{ color: '#64716a', fontSize: 12, fontWeight: 600 }}>{value}</span>
-                        )}
-                      />
-                    </PieChart>
-                  </ResponsiveContainer>
-                  {topModel && (
-                    <p className='text-center text-xs text-[#64716a] mt-1 font-medium'>
-                      🤖 Top model: <span className='text-[#17221d] font-bold'>{topModel.name}</span> ({topModel.value} conversations)
-                    </p>
-                  )}
-                </>
-              ) : (
-                <div className='h-[230px] flex items-center justify-center text-[#64716a] text-sm'>
-                  No conversation data yet
-                </div>
-              )}
-            </div>
-          </div>
-
-          <div className='chart-reveal bg-[#f7f9f5] flex-1 border border-[#c9d0c5] rounded-3xl p-6  shadow-[-3px_2px_1px_#0000005e] p-'>
-            <h3 className='font-bold mb-4'>Conversation Distribution</h3>
-            <ResponsiveContainer width="100%" height={300}>
-              <AreaChart data={barData}>
-                <defs>
-                  <linearGradient id="colorConversations" x1="0" y1="0" x2="0" y2="1">
-                    <stop offset="5%" stopColor="#3B82F6" stopOpacity={0.9} />
-                    <stop offset="50%" stopColor="#6366F1" stopOpacity={0.5} />
-                    <stop offset="95%" stopColor="#6366F1" stopOpacity={0.05} />
-                  </linearGradient>
-                </defs>
-
-                <XAxis dataKey="name" />
-                <YAxis />
-                <Tooltip content={<CustomTooltip />} />
-
-                <Area
-                  type="monotone"
-                  dataKey="conversations"
-                  stroke="#3B82F6"
-                  strokeWidth={3}
-                  fill="url(#colorConversations)"
-                  fillOpacity={1}
-                  dot={{
-                    r: 4,
-                    fill: "#3B82F6",
-                    stroke: "#fff",
-                    strokeWidth: 2,
-                  }}
-                  activeDot={{
-                    r: 7,
-                    fill: "#2563EB",
-                    stroke: "#fff",
-                    strokeWidth: 3,
-                  }}
-                />
-              </AreaChart>
-
-            </ResponsiveContainer>
-          </div>
-        </>
+          </>
 
       )}
 
-      
+
       {viewMode === 'cards' && (
         isLoading ? (
           <Loading boxes={3} child={' h-[300px]  w-[500px] rounded-2xl '} parent={' !flex-row !flex-warp h-[400px] w-full '} />
@@ -528,10 +528,10 @@ const MyChatBot = () => {
         )
       )}
 
-       <AnimatePresence>
+      <AnimatePresence>
         {trainingModel && (
           <>
-             <motion.div
+            <motion.div
               key="backdrop"
               initial={{ opacity: 0 }}
               animate={{ opacity: 1 }}
@@ -539,7 +539,7 @@ const MyChatBot = () => {
               onClick={() => setTrainingModel(null)}
               className="fixed inset-0 bg-black/40 backdrop-blur-sm z-40"
             />
-             <motion.div
+            <motion.div
               key="panel"
               initial={{ x: '100%' }}
               animate={{ x: 0 }}

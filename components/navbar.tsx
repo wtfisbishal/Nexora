@@ -1,5 +1,5 @@
 'use client'
-import { ArrowLeftRight, Calendar, ChartLine, User, ChartPie, Home, Bot, CodeXml, CreditCard } from 'lucide-react'
+import { ArrowLeftRight, Calendar, ChartLine, User, ChartPie, Home, Bot, CodeXml, CreditCard, Brain } from 'lucide-react'
 import Link from 'next/link'
 import { usePathname } from 'next/navigation'
 import React, { useEffect, useRef, useState } from 'react'
@@ -12,7 +12,7 @@ const Navbar = () => {
     const profileRef = useRef<HTMLAnchorElement | null>(null)
 
     const navItems = [
-        { href: '/dashboard', icon: Home , title: 'Home'},
+        { href: '/dashboard', icon: Brain , title: 'Train'},
         { href: '/my-chatbot', icon: Bot , title: 'Bots'},
         { href: '/scripts', icon: CodeXml , title: 'Scripts'},
         { href: '/pricing', icon: CreditCard , title: 'pricing'},
@@ -37,8 +37,6 @@ const Navbar = () => {
 
     return (
         <div className='fixed top-5 z-[100]  buttombar w-full flex justify-center gap-5 h-[60px]  '>
-
-
  
             <div className='pointer-events-auto backdrop-blur-[10px] bg-[#8c8c8c3d]  relative flex items-center p-1 border border-[#d3d3d325] rounded-full'>
 
@@ -73,8 +71,7 @@ const Navbar = () => {
                     )
                 })}
             </div> 
-            {/* Profile Button */}
-            <div className='pointer-events-auto backdrop-blur-[10px] bg-[#8c8c8c3d] relative flex items-center justify-center w-16 h-16 border border-[#d3d3d325] p-1  rounded-full'>
+             <div className='pointer-events-auto backdrop-blur-[10px] bg-[#8c8c8c3d] relative flex items-center justify-center w-16 h-16 border border-[#d3d3d325] p-1  rounded-full'>
                 <Link
                     ref={profileRef}
                     href='/profile'

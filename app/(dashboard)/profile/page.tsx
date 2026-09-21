@@ -64,8 +64,7 @@ const Profile = () => {
     <div className="w-full min-h-screen pb-20">
       <div className="max-w-2xl mx-auto px-4 pt-10">
 
-        {/* ── Header ── */}
-        <div className="flex items-center justify-between mb-8">
+         <div className="flex items-center justify-between mb-8">
           <h1 className="text-2xl font-bold text-[#17221d] [text-shadow:_-2px_1px_1px_#0000003a]">
             My Profile
           </h1>
@@ -80,8 +79,7 @@ const Profile = () => {
 
         {status !== 'loading' && session && (
           <>
-            {/* ── Identity Card ── */}
-            <div className="bg-[#fffefa] border border-[#d8ded5] rounded-3xl p-6 mb-5 shadow-[-2px_2px_0px_#0000001a]">
+             <div className="bg-[#fffefa] border border-[#d8ded5] rounded-3xl p-6 mb-5 shadow-[-2px_2px_0px_#0000001a]">
               <div className="flex items-center gap-5">
                 <div className="relative">
                   <Image
@@ -91,8 +89,7 @@ const Profile = () => {
                     height={72}
                     className="rounded-2xl w-[72px] h-[72px] object-cover ring-2 ring-[#d8ded5]"
                   />
-                  {/* Online dot */}
-                  <span className="absolute bottom-0.5 right-0.5 w-3 h-3 bg-green-400 border-2 border-white rounded-full" />
+                   <span className="absolute bottom-0.5 right-0.5 w-3 h-3 bg-green-400 border-2 border-white rounded-full" />
                 </div>
                 <div className="flex-1 min-w-0">
                   <div className="flex items-center gap-2 flex-wrap">
@@ -115,8 +112,7 @@ const Profile = () => {
               </div>
             </div>
 
-            {/* ── Stats Grid ── */}
-            {!loading && profile && (
+             {!loading && profile && (
               <div className="grid grid-cols-2 gap-3 mb-5">
                 <StatCard icon={Bot} label="Total Agents" value={profile.agentCount ?? 0} color="#546032" />
                 <StatCard icon={MessageSquare} label="Conversations" value={profile.totalConversations ?? 0} color="#2563eb" />
@@ -125,8 +121,7 @@ const Profile = () => {
               </div>
             )}
 
-            {/* ── Usage Bar ── */}
-            {profile?.plan && (
+             {profile?.plan && (
               <div className="bg-[#fffefa] border border-[#d8ded5] rounded-2xl p-5 mb-5">
                 <div className="flex justify-between items-center mb-2">
                   <span className="text-sm font-medium text-[#17221d]">Monthly Usage</span>
@@ -170,8 +165,7 @@ const Profile = () => {
               </div>
             )}
 
-            {/* ── Quick Links ── */}
-            <div className="bg-[#fffefa] border border-[#d8ded5] rounded-2xl overflow-hidden mb-5">
+             <div className="bg-[#fffefa] border border-[#d8ded5] rounded-2xl overflow-hidden mb-5">
               {[
                 { label: 'My Agents', href: '/my-chatbot', icon: Bot },
                 { label: 'Dashboard', href: '/dashboard', icon: Zap },
@@ -189,8 +183,7 @@ const Profile = () => {
               ))}
             </div>
 
-            {/* ── Sign Out ── */}
-            <button
+             <button
               onClick={async () => { setSigningOut(true); await signOut() }}
               disabled={signingOut}
               className="w-full flex items-center justify-center gap-2.5 py-3.5 rounded-2xl border border-red-200 bg-red-50 text-red-600 hover:bg-red-100 font-semibold text-sm transition-colors disabled:opacity-50"

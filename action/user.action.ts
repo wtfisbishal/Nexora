@@ -78,8 +78,7 @@ export const deleteModelAction = async (modelId: string) => {
         if (!session) {
             return { status: 401, message: "Unauthorized" };
         }
-        
-        // Ensure the model belongs to the user
+         
         const existing = await prisma.models.findUnique({
             where: { id: modelId }
         });

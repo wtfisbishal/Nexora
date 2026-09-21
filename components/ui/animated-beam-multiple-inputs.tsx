@@ -7,7 +7,7 @@ import { cn } from "@/lib/utils"
 
 export interface AnimatedBeamProps {
     className?: string
-    containerRef: RefObject<HTMLElement | null> // Container ref
+    containerRef: RefObject<HTMLElement | null>  
     fromRef: RefObject<HTMLElement | null>
     toRef: RefObject<HTMLElement | null>
     curvature?: number
@@ -33,7 +33,7 @@ export const AnimatedBeam: React.FC<AnimatedBeamProps> = ({
     fromRef,
     toRef,
     curvature = 0,
-    reverse = false, // Include the reverse prop
+    reverse = false,  
     duration = 7,
     delay = 0,
     pathColor = "gray",
@@ -51,8 +51,7 @@ export const AnimatedBeam: React.FC<AnimatedBeamProps> = ({
     const id = useId()
     const [pathD, setPathD] = useState("")
     const [svgDimensions, setSvgDimensions] = useState({ width: 0, height: 0 })
-
-    // Calculate the gradient coordinates based on the reverse prop
+ 
     const gradientCoordinates = reverse
         ? {
             x1: ["90%", "-10%"],
@@ -92,22 +91,17 @@ export const AnimatedBeam: React.FC<AnimatedBeamProps> = ({
                     },${controlY} ${endX},${endY}`
                 setPathD(d)
             }
-        }
-
-        // Initialize ResizeObserver
+        } 
         const resizeObserver = new ResizeObserver(() => {
             updatePath()
         })
-
-        // Observe the container element
+ 
         if (containerRef.current) {
             resizeObserver.observe(containerRef.current)
         }
-
-        // Call the updatePath initially to set the initial path
+ 
         updatePath()
-
-        // Clean up the observer on component unmount
+ 
         return () => {
             resizeObserver.disconnect()
         }
@@ -168,7 +162,7 @@ export const AnimatedBeam: React.FC<AnimatedBeamProps> = ({
                     transition={{
                         delay,
                         duration,
-                        ease: [0.16, 1, 0.3, 1], // https://easings.net/#easeOutExpo
+                        ease: [0.16, 1, 0.3, 1],  
                         repeat,
                         repeatDelay,
                     }}
@@ -225,64 +219,54 @@ export function AnimatedBeamMultipleOutputDemo({
                 className
             )}
             ref={containerRef}
-        >
-            {/* Left column — source nodes */}
-            <div className="flex flex-col justify-center gap-6">
-                {/* PDF */}
+        > 
+            <div className="flex flex-col justify-center gap-6"> 
                 <Circle ref={div1Ref}>
                     <svg viewBox="0 0 24 24" fill="none" className="w-6 h-6" xmlns="http://www.w3.org/2000/svg">
                         <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z" fill="#ef4444" opacity=".15"/><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z" stroke="#ef4444" strokeWidth="1.5" strokeLinejoin="round"/><path d="M14 2v6h6" stroke="#ef4444" strokeWidth="1.5" strokeLinejoin="round"/><text x="6" y="19" fontSize="5.5" fontWeight="bold" fill="#ef4444" fontFamily="sans-serif">PDF</text>
                     </svg>
-                </Circle>
-                {/* Text */}
+                </Circle> 
                 <Circle ref={div2Ref}>
                     <svg viewBox="0 0 24 24" fill="none" className="w-6 h-6" xmlns="http://www.w3.org/2000/svg">
                         <rect x="3" y="3" width="18" height="18" rx="2" fill="#6366f1" opacity=".15"/><rect x="3" y="3" width="18" height="18" rx="2" stroke="#6366f1" strokeWidth="1.5"/><path d="M7 8h10M7 12h10M7 16h6" stroke="#6366f1" strokeWidth="1.5" strokeLinecap="round"/>
                     </svg>
-                </Circle>
-                {/* YouTube */}
+                </Circle> 
                 <Circle ref={div3Ref}>
                     <svg viewBox="0 0 24 24" className="w-6 h-6" xmlns="http://www.w3.org/2000/svg">
                         <path d="M22.54 6.42a2.78 2.78 0 0 0-1.95-1.96C18.88 4 12 4 12 4s-6.88 0-8.59.46A2.78 2.78 0 0 0 1.46 6.42 29 29 0 0 0 1 12a29 29 0 0 0 .46 5.58 2.78 2.78 0 0 0 1.95 1.96C5.12 20 12 20 12 20s6.88 0 8.59-.46a2.78 2.78 0 0 0 1.96-1.96A29 29 0 0 0 23 12a29 29 0 0 0-.46-5.58z" fill="#ff0000"/><polygon points="9.75 15.02 15.5 12 9.75 8.98 9.75 15.02" fill="#fff"/>
                     </svg>
                 </Circle>
-                {/* GitHub */}
-                <Circle ref={div4Ref}>
+                 <Circle ref={div4Ref}>
                     <svg viewBox="0 0 24 24" className="w-6 h-6" xmlns="http://www.w3.org/2000/svg">
                         <path d="M12 2C6.477 2 2 6.484 2 12.017c0 4.425 2.865 8.18 6.839 9.504.5.092.682-.217.682-.483 0-.237-.008-.868-.013-1.703-2.782.605-3.369-1.343-3.369-1.343-.454-1.158-1.11-1.466-1.11-1.466-.908-.62.069-.608.069-.608 1.003.07 1.531 1.032 1.531 1.032.892 1.53 2.341 1.088 2.91.832.092-.647.35-1.088.636-1.338-2.22-.253-4.555-1.113-4.555-4.951 0-1.093.39-1.988 1.029-2.688-.103-.253-.446-1.272.098-2.65 0 0 .84-.27 2.75 1.026A9.564 9.564 0 0 1 12 6.844a9.59 9.59 0 0 1 2.504.337c1.909-1.296 2.747-1.027 2.747-1.027.546 1.379.202 2.398.1 2.651.64.7 1.028 1.595 1.028 2.688 0 3.848-2.339 4.695-4.566 4.943.359.309.678.92.678 1.855 0 1.338-.012 2.419-.012 2.747 0 .268.18.58.688.482A10.019 10.019 0 0 0 22 12.017C22 6.484 17.522 2 12 2z" fill="#24292f"/>
                     </svg>
                 </Circle>
-                {/* Website */}
-                <Circle ref={div5Ref}>
+                 <Circle ref={div5Ref}>
                     <svg viewBox="0 0 24 24" fill="none" className="w-6 h-6" xmlns="http://www.w3.org/2000/svg">
                         <circle cx="12" cy="12" r="10" stroke="#0ea5e9" strokeWidth="1.5"/><path d="M2 12h20M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z" stroke="#0ea5e9" strokeWidth="1.5"/>
                     </svg>
                 </Circle>
             </div>
-
-            {/* Centre — Nexora node */}
+ 
             <div className="flex flex-col items-center justify-center mx-16">
                 <Circle ref={div6Ref} className="size-16">
                     <img className="w-10 h-10 object-contain" src="/logo2.png" alt="Nexora" />
                 </Circle>
             </div>
 
-            {/* Right — output node */}
-            <div className="flex flex-col justify-center">
+             <div className="flex flex-col justify-center">
                 <Circle ref={div7Ref}>
                     <h2 className="whitespace-nowrap text-sm font-semibold">Ask Ai</h2>
                 </Circle>
             </div>
 
-
-            {/* Beams from sources → Nexora */}
+ 
             <AnimatedBeam containerRef={containerRef} fromRef={div1Ref} toRef={div6Ref} />
             <AnimatedBeam containerRef={containerRef} fromRef={div2Ref} toRef={div6Ref} />
             <AnimatedBeam containerRef={containerRef} fromRef={div3Ref} toRef={div6Ref} />
             <AnimatedBeam containerRef={containerRef} fromRef={div4Ref} toRef={div6Ref} />
             <AnimatedBeam containerRef={containerRef} fromRef={div5Ref} toRef={div6Ref} />
-
-            {/* Beam from Nexora → output */}
+ 
             <AnimatedBeam containerRef={containerRef} fromRef={div6Ref} toRef={div7Ref} />
         </div>
     )

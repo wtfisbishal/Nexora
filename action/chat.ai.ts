@@ -1,18 +1,5 @@
 'use server'
-
-/**
- * action/chat.ai.ts
- *
- * Core AI chat action used by both the API route and the dashboard embed.
- *
- * Production improvements:
- *  - Module-level client singletons (Qdrant, OpenAI, Mem0) — not re-created per call
- *  - Quota check before the expensive LLM call
- *  - Timeout wrapper around LLM call (fail fast)
- *  - Structured logger instead of console.*
- *  - Persists messages to ChatMessage table for audit trail
- */
-
+ 
 import { OpenAIEmbeddings } from '@langchain/openai';
 import OpenAI from 'openai';
 import { QdrantClient } from '@qdrant/js-client-rest';
@@ -20,9 +7,15 @@ import { QdrantVectorStore } from '@langchain/qdrant';
 import prisma from '@/lib/prisma';
 import { MemoryClient } from 'mem0ai';
 import logger from '@/lib/logger';
-
-// Singleton clients (instantiated once, reused across all calls) 
-// In Next.js server actions these live for the lifetime of the process.
+import {
+  chatRequestsTotal,
+  chatLLMDurationSeconds,
+  serverActionDurationSeconds,
+  quotaExceededTotal,
+  aiModelCallsTotal,
+  errorsTotal,
+} from '@/lib/prometheus';
+ 
 const qclient = new QdrantClient({
   url: process.env.QDRANT_URL!,
   apiKey: process.env.QDRANT_API_KEY!,
@@ -51,12 +44,7 @@ interface ChatMessage {
   role: ChatRole;
   content: string;
 }
-
-// Quota check  
-/**
- * Checks if the user owning this model has remaining quota.
- * Returns { allowed: boolean, reason?: string }.
- */
+ 
 async function checkQuota(modelId: string): Promise<{ allowed: boolean; reason?: string }> {
   try {
     const model = await prisma.models.findUnique({
@@ -86,6 +74,7 @@ async function checkQuota(modelId: string): Promise<{ allowed: boolean; reason?:
     }
 
     if (plan.monthlyUsed >= plan.monthlyQuota) {
+      quotaExceededTotal.inc();
       return {
         allowed: false,
         reason: `Monthly quota of ${plan.monthlyQuota} conversations reached.`,
@@ -98,8 +87,7 @@ async function checkQuota(modelId: string): Promise<{ allowed: boolean; reason?:
     return { allowed: true }; // fail open — don't block users if DB is slow
   }
 }
-
-// ── Context retrieval ─────────────────────────────────────────────────────────
+ 
 async function retrieveContext(query: string, collectionName: string): Promise<string> {
   try {
     const vectorStore = await QdrantVectorStore.fromExistingCollection(embeddingsClient, {
@@ -120,8 +108,7 @@ async function retrieveContext(query: string, collectionName: string): Promise<s
     return 'Context retrieval unavailable.';
   }
 }
-
-// ── Memory  
+ 
 async function fetchMemories(query: string, sessionId: string): Promise<string> {
   try {
     const result = await mem0Client.search(query, { filters: { user_id: sessionId } });
@@ -155,8 +142,7 @@ async function saveMemory(
     logger.error('[Mem0] Failed to save memory', { err, sessionId });
   }
 }
-
-// ── Usage counter ─────────────────────────────────────────────────────────────
+ 
 async function incrementUsage(modelId: string): Promise<void> {
   try {
     // Update both the model times counter and the user's monthly plan counter
@@ -176,8 +162,7 @@ async function incrementUsage(modelId: string): Promise<void> {
     logger.error('[Prisma] Failed to increment usage counter', { err, modelId });
   }
 }
-
-// ── System prompt ─────────────────────────────────────────────────────────────
+ 
 function buildSystemPrompt(context: string, memories: string, botName: string): string {
   const memorySection = memories
     ? `\n## What You Know About This User\n${memories}`
@@ -203,8 +188,7 @@ You help visitors by answering their questions based on the information availabl
 ## Context (use this to answer questions)
 ${context}`;
 }
-
-// Retry exponential backoff (429 only) 
+ 
 async function withRetry<T>(
   fn: () => Promise<T>,
   maxRetries = 3,
@@ -228,9 +212,13 @@ async function withRetry<T>(
   }
   throw lastErr;
 }
-
-// LLM call with timeout 
+ 
 async function callLLMWithTimeout(messages: ChatMessage[]): Promise<string> {
+  // Track every LLM API call with provider + model labels
+  aiModelCallsTotal.inc({ provider: 'google', model: LLM_MODEL, operation: 'chat' });
+
+  const endTimer = chatLLMDurationSeconds.startTimer({ model: LLM_MODEL });
+
   const llmPromise = withRetry(() =>
     openaiClient.chat.completions.create({
       model: LLM_MODEL,
@@ -244,12 +232,17 @@ async function callLLMWithTimeout(messages: ChatMessage[]): Promise<string> {
     setTimeout(() => reject(new Error(`LLM call timed out after ${LLM_TIMEOUT_MS}ms`)), LLM_TIMEOUT_MS)
   );
 
-  const completion = await Promise.race([llmPromise, timeoutPromise]);
-  return completion.choices[0]?.message?.content?.trim() ?? '';
+  try {
+    const completion = await Promise.race([llmPromise, timeoutPromise]);
+    endTimer();
+    return completion.choices[0]?.message?.content?.trim() ?? '';
+  } catch (err) {
+    endTimer();
+    throw err;
+  }
 }
 
-// Main exported action
-export const chatAIAction = async (
+ export const chatAIAction = async (
   userQuery: string,
   collection: string,
   id: string,
@@ -260,43 +253,63 @@ export const chatAIAction = async (
   if (!userQuery?.trim()) throw new Error('Query must not be empty.');
   if (!collection?.trim()) throw new Error('A knowledge collection is required.');
 
-  // 1. Quota check
-  // if (id) {
-  //   const quota = await checkQuota(id);
-  //   if (!quota.allowed) {
-  //     logger.warn('Quota exceeded', { modelId: id, sessionId });
-  //     return `I'm sorry, the monthly conversation limit for this chatbot has been reached. Please contact the site owner to upgrade their plan.`;
-  //   }
-  // }
+  // Track overall server action duration
+  const endActionTimer = serverActionDurationSeconds.startTimer({ action: 'chatAIAction' });
 
-  // 2. Parallel: fetch RAG context + user memories
-  const [context, memories] = await Promise.all([
-    retrieveContext(userQuery, collection),
-    fetchMemories(userQuery, sessionId),
-  ]);
+  try {
+    // if (id) {
+    //   const quota = await checkQuota(id);
+    //   if (!quota.allowed) {
+    //     logger.warn('Quota exceeded', { modelId: id, sessionId });
+    //     chatRequestsTotal.inc({ model: LLM_MODEL, status: 'quota_exceeded' });
+    //     endActionTimer();
+    //     return `I'm sorry, the monthly conversation limit for this chatbot has been reached. Please contact the site owner to upgrade their plan.`;
+    //   }
+    // }
 
-  const systemPrompt = buildSystemPrompt(context, memories, botName);
+    const [context, memories] = await Promise.all([
+      retrieveContext(userQuery, collection),
+      fetchMemories(userQuery, sessionId),
+    ]);
 
-  // 3. Build message list (cap history to last MAX_HISTORY_TURNS messages)
-  const recentHistory = history.slice(-MAX_HISTORY_TURNS);
-  const chatMessages: ChatMessage[] = [
-    { role: 'system', content: systemPrompt },
-    ...recentHistory.map((m) => ({ role: m.role as ChatRole, content: m.content })),
-    { role: 'user', content: userQuery },
-  ];
+    const systemPrompt = buildSystemPrompt(context, memories, botName);
 
-  // 4. LLM call
-  const assistantMessage = await callLLMWithTimeout(chatMessages);
+    const recentHistory = history.slice(-MAX_HISTORY_TURNS);
+    const chatMessages: ChatMessage[] = [
+      { role: 'system', content: systemPrompt },
+      ...recentHistory.map((m) => ({ role: m.role as ChatRole, content: m.content })),
+      { role: 'user', content: userQuery },
+    ];
 
-  if (!assistantMessage) {
-    throw new Error('The AI model returned an empty response.');
+    const assistantMessage = await callLLMWithTimeout(chatMessages);
+
+    if (!assistantMessage) {
+      throw new Error('The AI model returned an empty response.');
+    }
+
+    await Promise.all([
+      saveMemory(userQuery, assistantMessage, sessionId, id),
+      id ? incrementUsage(id) : Promise.resolve(),
+    ]);
+
+    // ── Success metric ──────────────────────────────────────────────────────
+    chatRequestsTotal.inc({ model: LLM_MODEL, status: 'success' });
+    endActionTimer();
+
+    return assistantMessage;
+  } catch (err: unknown) {
+    // ── Error metrics ───────────────────────────────────────────────────────
+    const isTimeout = err instanceof Error && err.message.includes('timed out');
+    const isRateLimit = (err as { status?: number })?.status === 429;
+
+    const errorCode = isTimeout ? 'timeout' : isRateLimit ? 'rate_limited' : 'unknown';
+    const requestStatus = isRateLimit ? 'rate_limited' : 'error';
+
+    chatRequestsTotal.inc({ model: LLM_MODEL, status: requestStatus });
+    errorsTotal.inc({ source: 'chat_action', code: errorCode });
+    endActionTimer();
+
+    logger.error('[chatAIAction] Request failed', { err, sessionId, modelId: id });
+    throw err;
   }
-
-  // 5. Persist in parallel (fire-and-forget — does not block the response)
-  await Promise.all([
-    saveMemory(userQuery, assistantMessage, sessionId, id),
-    id ? incrementUsage(id) : Promise.resolve(),
-  ]);
-
-  return assistantMessage;
 };

@@ -1,0 +1,62 @@
+# monitoring/prometheus.yml
+#
+# Prometheus scrape configuration for Nexora.
+# Scrapes:
+#   1. The Next.js app /api/metrics endpoint (bearer token auth)
+#   2. The Prometheus Pushgateway (for embedding worker metrics)
+#   3. Prometheus self-monitoring
+#
+# Usage:
+#   docker compose up -d prometheus
+#   Then open http://localhost:9090
+
+global:
+  scrape_interval:     15s  # How often to scrape targets
+  evaluation_interval: 15s  # How often to evaluate alerting rules
+  scrape_timeout:      10s
+
+# ── Alerting (optional — connect to Alertmanager later) ──────────────────────
+# alerting:
+#   alertmanagers:
+#     - static_configs:
+#         - targets: ['alertmanager:9093']
+
+# ── Rule files (optional — add .rules.yml files here) ────────────────────────
+# rule_files:
+#   - "nexora.rules.yml"
+
+# ── Scrape configs ────────────────────────────────────────────────────────────
+scrape_configs:
+
+  # ── 1. Next.js application metrics ──────────────────────────────────────────
+  - job_name: 'nexora_app'
+    scrape_interval: 15s
+    metrics_path: '/api/metrics'
+    # Comment out the authorization block if METRICS_TOKEN is not set
+    authorization:
+      type: Bearer
+      credentials_file: /etc/prometheus/metrics_token
+
+    static_configs:
+      - targets:
+          - 'app:3000'          # Docker Compose service name + port
+        labels:
+          service: 'nextjs'
+          environment: 'development'
+
+  # ── 2. Prometheus Pushgateway (embedding worker metrics) ─────────────────────
+  - job_name: 'nexora_pushgateway'
+    scrape_interval: 15s
+    honor_labels: true          # Preserve the job/instance labels from pushed metrics
+
+    static_configs:
+      - targets:
+          - 'pushgateway:9091'
+        labels:
+          service: 'embedding_worker'
+          environment: 'development'
+
+  # ── 3. Prometheus self-monitoring ────────────────────────────────────────────
+  - job_name: 'prometheus'
+    static_configs:
+      - targets: ['localhost:9090']

@@ -1,7 +1,6 @@
 'use client'
-import { useLayoutEffect, useRef, RefObject } from "react";
-
- import gsap from 'gsap';
+import { useLayoutEffect, RefObject } from "react";
+import gsap from 'gsap';
 
 
 export const useAnimated = (root: RefObject<HTMLDivElement | null>) => {

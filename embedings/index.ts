@@ -3,8 +3,13 @@
 import prisma from "@/lib/prisma"; 
 import { authOptions } from "@/lib/auth";
 import { getServerSession } from "next-auth";
-
 import { embeddingQueue } from "@/lib/queue";
+import {
+  embeddingJobsTotal,
+  serverActionDurationSeconds,
+  errorsTotal,
+  aiModelCallsTotal,
+} from '@/lib/prometheus';
 
 export const generateEmbeddings = async (
     url: string,
@@ -20,8 +25,7 @@ export const generateEmbeddings = async (
     if (!url && !collecttion && !type) {
         return "Invalid parameters"
     }
-
-    // Try to guess a name if possible (the worker will refine it later if needed)
+ 
     if (type === 'github') 
         name = url.replace(/https:\/\/github\.com\//, '').replace(/\/$/, '').split('/').join('_');
 
@@ -32,28 +36,27 @@ export const generateEmbeddings = async (
     
     else if (type === 'text') name = `text_document`;
 
+    // Track server action duration
+    const endActionTimer = serverActionDurationSeconds.startTimer({ action: 'generateEmbeddings' });
+
     try {
         let model;
 
         if (targetModelId) {
-            // Check if model exists and belongs to user
-            const existing = await prisma.models.findUnique({
+             const existing = await prisma.models.findUnique({
                 where: { id: targetModelId }
             });
             if (!existing || existing.userId !== userId) {
                 throw new Error("Target model not found or unauthorized");
             }
-            // Use existing collection name if appending to existing agent
-            collecttion = existing.collection_name ?? collecttion;
+             collecttion = existing.collection_name ?? collecttion;
 
-            // Update status to PENDING
-            model = await prisma.models.update({
+             model = await prisma.models.update({
                 where: { id: targetModelId },
                 data: { status: 'PENDING' }
             });
         } else {
-            // Create new model
-            model = await prisma.models.create({
+             model = await prisma.models.create({
                 data: {
                     collection_name: collecttion,
                     source: type,
@@ -65,8 +68,7 @@ export const generateEmbeddings = async (
             });
         }
 
-        // Enqueue the job for the worker
-        await embeddingQueue.add('generate-embedding', {
+         await embeddingQueue.add('generate-embedding', {
             url,
             type,
             collectionName: collecttion,
@@ -75,8 +77,15 @@ export const generateEmbeddings = async (
             modelId: model.id
         });
 
+        // Track AI embedding model call + job queued
+        aiModelCallsTotal.inc({ provider: 'openai', model: 'text-embedding-3-small', operation: 'embed' });
+        embeddingJobsTotal.inc({ type, status: 'queued' });
+        endActionTimer();
+
         return JSON.parse(JSON.stringify(model));
     } catch (error) {
+        errorsTotal.inc({ source: 'embedding_action', code: 'queue_failed' });
+        endActionTimer();
         console.error("Error creating embedding job:", error);
         throw new Error("Failed to enqueue embedding job");
     }
@@ -95,11 +104,15 @@ export const LoadPdfEmbedingsFromBuffer = async (
     let collectionName = (session?.user.name ?? 'Nexora') + '_pdf_collection' + Date.now();
     let model;
 
+    // Track server action duration
+    const endActionTimer = serverActionDurationSeconds.startTimer({ action: 'LoadPdfEmbedingsFromBuffer' });
+
     if (targetModelId) {
         const existing = await prisma.models.findUnique({
             where: { id: targetModelId }
         });
         if (!existing || existing.userId !== userId) {
+            endActionTimer();
             throw new Error("Target model not found or unauthorized");
         }
         collectionName = existing.collection_name ?? collectionName;
@@ -132,6 +145,11 @@ export const LoadPdfEmbedingsFromBuffer = async (
         fileName,
         modelId: model.id
     });
+
+    // Track AI embedding model call + PDF job queued
+    aiModelCallsTotal.inc({ provider: 'openai', model: 'text-embedding-3-small', operation: 'embed' });
+    embeddingJobsTotal.inc({ type: 'pdf', status: 'queued' });
+    endActionTimer();
 
     return JSON.parse(JSON.stringify(model));
 }

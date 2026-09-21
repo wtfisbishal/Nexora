@@ -65,8 +65,7 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: 'siteId and uniqueId are required.' }, { status: 400, headers });
   }
  
-  // 4. Rate limit by siteId (500 req/day per chatbot widget)
-  const siteLimit = await rateLimitBySiteId(siteId, 500, 86400);
+   const siteLimit = await rateLimitBySiteId(siteId, 500, 86400);
   if (!siteLimit.allowed) {
     await metrics.incrementCounter(METRIC.CHAT_RATE_LIMITED);
     logger.warn('Rate limited by siteId', { siteId });

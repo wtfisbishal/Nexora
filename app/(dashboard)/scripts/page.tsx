@@ -44,6 +44,8 @@ const ScriptsPage = () => {
   const [config, setConfig] = useState<WidgetConfig>(defaultConfig);
   const [isChatOpen, setIsChatOpen] = useState(true);
   const [copied, setCopied] = useState(false);
+  const [frameworkTab, setFrameworkTab] = useState<'html' | 'react' | 'next' | 'vue' | 'astro'>('html');
+  const [frameworkCopied, setFrameworkCopied] = useState(false);
   const root = useRef<HTMLDivElement>(null);
   const { data:chatbots, isLoading   } = useGetModels()
   
@@ -486,71 +488,214 @@ const ScriptsPage = () => {
           </div>
         </div>
 
-        {/*  Generated Script   */}
-        <div className="flex dash-reveal flex-col gap-4 shrink-0" style={{ width: '320px', minWidth: '280px' }}>
-          <div className="card rounded-2xl p-4 h-full min-h-[660px] flex flex-col">
-            <div className="flex justify-between items-center mb-4">
-              <p className="text-xs font-semibold uppercase tracking-widest text-gray-400">Generated Script</p>
-              {generatedScript && (
-                <button
-                  onClick={() => copyTextToClipboard(generatedScript)}
-                  className="text-xs px-3 py-1.5 rounded-xl font-semibold transition-all duration-200"
-                  style={{
-                    background: copied ? '#22c55e' : '#bed96d',
-                    color: '#293A30',
-                  }}
-                >
-                  {copied ? '✓ Copied!' : 'Copy'}
-                </button>
-              )}
-            </div>
+          {/* ── Install Code Panel ─────────────────────────────────────── */}
+          {(() => {
+            const FW = [
+              { id: 'html',  label: 'HTML',    icon: '🌐' },
+              { id: 'react', label: 'React',   icon: '⚛️' },
+              { id: 'next',  label: 'Next.js', icon: '▲'  },
+              { id: 'vue',   label: 'Vue',     icon: '💚' },
+              { id: 'astro', label: 'Astro',   icon: '🚀' },
+            ] as const;
 
-            {!generatedScript ? (
-              <div className="flex-1 flex flex-col items-center justify-center text-center p-6 opacity-50">
-                <div className="text-4xl mb-3">⚡</div>
-                <p className="text-sm text-gray-500">Select a chatbot and click <strong>Generate Script</strong> to get your embed code.</p>
+            const hints: Record<typeof frameworkTab, string> = {
+              html:  'Paste before the closing </body> tag.',
+              react: 'Add <NexoraWidget /> to your root layout.',
+              next:  'Place in app/layout.tsx — loads after interactive.',
+              vue:   'Add to App.vue — mounts after component is ready.',
+              astro: 'Add to Layout.astro so it loads on every page.',
+            };
+
+            /** Parse script attributes into { attr, val }[] */
+            const parseAttrs = (src: string) =>
+              src.split('\n').filter(l => l.includes('=')).map(l => {
+                const eq = l.indexOf('=');
+                return { attr: l.substring(0, eq).trim(), val: l.substring(eq + 1).trim() };
+              });
+
+            const snippets: Record<typeof frameworkTab, string> = {
+              html: generatedScript
+                ? `<!-- Paste before </body> -->\n${generatedScript}`
+                : '',
+
+              react: generatedScript ? `// components/NexoraWidget.tsx
+'use client';
+import { useEffect } from 'react';
+
+export default function NexoraWidget() {
+  useEffect(() => {
+    const s = document.createElement('script');
+    s.src = 'https://nexora.bishal.online/widget.js';
+    ${parseAttrs(generatedScript).map(({ attr, val }) => `s.setAttribute('${attr}', ${val});`).join('\n    ')}
+    document.body.appendChild(s);
+  }, []);
+  return null;
+}` : '',
+
+              next: generatedScript ? `// app/layout.tsx
+import Script from 'next/script';
+
+export default function RootLayout({ children }) {
+  return (
+    <html><body>
+      {children}
+      <Script
+        ${parseAttrs(generatedScript).map(({ attr, val }) => `${attr}={${val}}`).join('\n        ')}
+        strategy="afterInteractive"
+      />
+    </body></html>
+  );
+}` : '',
+
+              vue: generatedScript ? `<!-- App.vue -->
+<script setup>
+import { onMounted } from 'vue';
+onMounted(() => {
+  const s = document.createElement('script');
+  s.src = 'https://nexora.bishal.online/widget.js';
+  ${parseAttrs(generatedScript).map(({ attr, val }) => `s.setAttribute('${attr}', ${val});`).join('\n  ')}
+  document.body.appendChild(s);
+});
+<\/script>
+
+<template><div id="app"><RouterView /></div></template>` : '',
+
+              astro: generatedScript ? `---
+// src/layouts/Layout.astro
+---
+<html>
+  <body>
+    <slot />
+    ${generatedScript.replace(/\n/g, '\n    ')}
+  </body>
+</html>` : '',
+            };
+
+            const activeSnippet = snippets[frameworkTab];
+
+            const copySnippet = async () => {
+              if (!activeSnippet) return;
+              await navigator.clipboard.writeText(activeSnippet);
+              setFrameworkCopied(true);
+              setTimeout(() => setFrameworkCopied(false), 2000);
+            };
+
+            /** Minimal syntax highlighter */
+            const highlight = (code: string) =>
+              code.split('\n').map((line, i) => {
+                const t = line.trim();
+                if (t.startsWith('//') || t.startsWith('<!--') || t.startsWith('---'))
+                  return <div key={i} style={{ color: '#6a9955' }}>{line}{'\n'}</div>;
+                if (t.startsWith('<') || t.startsWith('>'))
+                  return <div key={i} style={{ color: '#ff7b72' }}>{line}{'\n'}</div>;
+                if (/^(import|export|from|const|return|async|await|function|'use client')/.test(t)) {
+                  const m = line.match(/^(\s*)(import|export|from|const|return|async|await|function|'use client')(.*)$/);
+                  if (m) return (
+                    <div key={i}>
+                      {m[1]}<span style={{ color: '#c586c0' }}>{m[2]}</span>
+                      <span style={{ color: '#c9d1d9' }}>{m[3]}</span>{'\n'}
+                    </div>
+                  );
+                }
+                if (line.includes('=')) {
+                  const eq = line.indexOf('=');
+                  return (
+                    <div key={i}>
+                      <span style={{ color: '#79c0ff' }}>{line.substring(0, eq)}</span>
+                      <span style={{ color: '#c9d1d9' }}>=</span>
+                      <span style={{ color: '#a5d6ff' }}>{line.substring(eq + 1)}</span>{'\n'}
+                    </div>
+                  );
+                }
+                return <div key={i} style={{ color: '#c9d1d9' }}>{line}{'\n'}</div>;
+              });
+
+            const tabBorder = (active: boolean) => ({
+              background: active ? '#0d1117' : 'transparent',
+              color:      active ? '#bed96d' : '#4a6030',
+              border:     active ? '1px solid #2a4010' : '1px solid transparent',
+              borderBottom: active ? '1px solid #0d1117' : '1px solid transparent',
+              marginBottom: '-1px',
+              position:  'relative' as const,
+              zIndex:    active ? 1 : 0,
+            });
+
+            return (
+              <div className="dash-reveal flex flex-col shrink-0" style={{ width: 340, minWidth: 300 }}>
+                <div className="card rounded-2xl overflow-hidden flex flex-col min-h-[660px]" style={{ padding: 0 }}>
+
+                  {/* Header */}
+                  <div className="flex items-center justify-between px-4 py-3" style={{ borderBottom: '1px solid #1a2e06' }}>
+                    <div className="flex items-center gap-2">
+                      <span className="w-2 h-2 rounded-full inline-block" style={{
+                        background: generatedScript ? '#bed96d' : '#3a4a2a',
+                        boxShadow: generatedScript ? '0 0 6px #bed96d88' : 'none',
+                      }} />
+                      <span className="text-xs font-semibold uppercase tracking-widest text-gray-400">Install Code</span>
+                    </div>
+                    {generatedScript && (
+                      <button onClick={copySnippet}
+                        className="flex items-center gap-1 text-xs px-3 py-1.5 rounded-xl font-semibold transition-all duration-200"
+                        style={{
+                          background: frameworkCopied ? '#22c55e22' : '#1a2e06',
+                          color:      frameworkCopied ? '#22c55e'   : '#bed96d',
+                          border:    `1px solid ${frameworkCopied ? '#22c55e44' : '#2a4010'}`,
+                        }}>
+                        {frameworkCopied ? '✓ Copied!' : '⎘ Copy'}
+                      </button>
+                    )}
+                  </div>
+
+                  {/* Framework Tabs */}
+                  <div className="flex items-center gap-0.5 px-3 pt-3">
+                    {FW.map(fw => (
+                      <button key={fw.id} onClick={() => setFrameworkTab(fw.id)}
+                        className="flex items-center gap-1 text-[11px] font-semibold px-2.5 py-1.5 rounded-t-lg transition-all duration-150"
+                        style={tabBorder(frameworkTab === fw.id)}>
+                        <span className="text-[10px]">{fw.icon}</span>{fw.label}
+                      </button>
+                    ))}
+                  </div>
+
+                  {/* Code area */}
+                  {!generatedScript ? (
+                    <div className="flex-1 flex flex-col items-center justify-center gap-3 text-center p-8 mx-3 mb-3 rounded-b-xl rounded-tr-xl"
+                      style={{ background: '#0d1117', border: '1px solid #2a4010' }}>
+                      <span className="text-4xl" style={{ filter: 'grayscale(0.3)' }}>⚡</span>
+                      <p className="text-sm leading-relaxed" style={{ color: '#4a6030' }}>
+                        Select a chatbot and click{' '}
+                        <strong style={{ color: '#bed96d' }}>Generate Script</strong>{' '}
+                        to get your embed code.
+                      </p>
+                    </div>
+                  ) : (
+                    <div className="flex-1 overflow-auto font-mono text-xs leading-relaxed mx-3 mb-3 rounded-b-xl rounded-tr-xl"
+                      style={{ background: '#0d1117', border: '1px solid #2a4010', padding: '14px', whiteSpace: 'pre' }}>
+                      <div className="flex gap-3">
+                        <div className="select-none text-right shrink-0 text-[10px]"
+                          style={{ color: '#3a4a2a', lineHeight: '1.6' }}>
+                          {activeSnippet.split('\n').map((_, i) => <div key={i}>{i + 1}</div>)}
+                        </div>
+                        <div style={{ lineHeight: '1.6', flex: 1 }}>{highlight(activeSnippet)}</div>
+                      </div>
+                    </div>
+                  )}
+
+                  {/* Footer hint */}
+                  {generatedScript && (
+                    <div className="px-3 pb-3">
+                      <div className="flex items-start gap-2 text-[10px] px-3 py-2 rounded-xl leading-relaxed"
+                        style={{ background: '#0a1505', border: '1px solid #1e2d0e', color: '#4a6030' }}>
+                        <span style={{ color: '#bed96d' }}>💡</span>
+                        {hints[frameworkTab]}
+                      </div>
+                    </div>
+                  )}
+
+                </div>
               </div>
-            ) : (
-              <>
-                <div
-                  className="flex-1 rounded-xl p-4 overflow-auto font-mono text-xs leading-relaxed"
-                  style={{ background: '#0d1117', color: '#c9d1d9', whiteSpace: 'pre-wrap', wordBreak: 'break-all' }}
-                >
-                  {generatedScript.split('\n').map((line, i) => {
-                    if (line.trim().startsWith('<script') || line.trim() === '></script>') {
-                      return (
-                        <div key={i}>
-                          <span style={{ color: '#ff7b72' }}>{line.trim().startsWith('<script') ? '<script' : '>'}</span>
-                          {line.trim() === '></script>' && <span style={{ color: '#ff7b72' }}>{'</script>'}</span>}
-                          {'\n'}
-                        </div>
-                      );
-                    }
-                    if (line.includes('=')) {
-                      const eqIdx = line.indexOf('=');
-                      const attr = line.substring(0, eqIdx);
-                      const val = line.substring(eqIdx + 1);
-                      return (
-                        <div key={i}>
-                          <span style={{ color: '#79c0ff' }}>{attr}</span>
-                          <span style={{ color: '#c9d1d9' }}>=</span>
-                          <span style={{ color: '#a5d6ff' }}>{val}</span>
-                          {'\n'}
-                        </div>
-                      );
-                    }
-                    return <div key={i}>{line}{'\n'}</div>;
-                  })}
-                </div>
-
-                <div className="mt-3 text-xs text-gray-700 flex items-start gap-2 p-3 rounded-xl border border-[#313f08]"  >
-
-                  <span>Paste this <code className="text-[#313f08]   ">&lt;script&gt;</code> tag before the closing <code className="  text-[#313f08] ">&lt;/body&gt;</code> of your website.</span>
-                </div>
-              </>
-            )}
-          </div>
-        </div>
+            );
+          })()}
 
       </div>
     </div>

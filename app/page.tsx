@@ -14,20 +14,20 @@ import {
   ResponsiveContainer, PieChart, Pie, Cell, Legend,
 } from 'recharts';
 
-const growthData = [
-  { month: 'Jan', conversations: 420 },
-  { month: 'Feb', conversations: 780 },
-  { month: 'Mar', conversations: 1100 },
-  { month: 'Apr', conversations: 1650 },
-  { month: 'May', conversations: 2300 },
-  { month: 'Jun', conversations: 3200 },
-  { month: 'Jul', conversations: 4800 },
-  { month: 'Aug', conversations: 6400 },
-  { month: 'Sep', conversations: 9100 },
+const growthData = [                     
+  { month: 'Jan', conversations: 420   },
+  { month: 'Feb', conversations: 780   },
+  { month: 'Mar', conversations: 1100  },
+  { month: 'Apr', conversations: 1650  },
+  { month: 'May', conversations: 2300  },
+  { month: 'Jun', conversations: 3200  },
+  { month: 'Jul', conversations: 4800  },
+  { month: 'Aug', conversations: 6400  },
+  { month: 'Sep', conversations: 9100  },
   { month: 'Oct', conversations: 13500 },
   { month: 'Nov', conversations: 19800 },
   { month: 'Dec', conversations: 28000 },
-];
+];                                        
 
 const topicData = [
   { name: 'Product Q&A', value: 38, color: '#cff45f' },

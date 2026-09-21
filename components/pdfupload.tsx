@@ -1,5 +1,5 @@
 'use client';
-import { LoadPdfEmbedingsFromBuffer } from '@/ai/embeding';
+import { LoadPdfEmbedingsFromBuffer } from '@/embedings';
 import { toastSuccess } from '@/lib/toast';
 import { useQueryClient } from '@tanstack/react-query';
 import { CheckCircle2, FileText, LoaderCircle, Upload, X } from 'lucide-react';
@@ -50,7 +50,6 @@ export default function PdfUploader({ mode, targetModelId }: { mode: 'bot' | 'no
                 setUploadStatus('Collection created successfully!');
                 toastSuccess('PDF added to knowledge base!');
                 client.invalidateQueries({ queryKey: ['modelsinfo'] });
-                // Reset after a short delay
                 setTimeout(() => {
                     setSelectedFile(null);
                     setUploadStatus('');

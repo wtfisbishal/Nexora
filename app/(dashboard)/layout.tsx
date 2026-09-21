@@ -1,5 +1,4 @@
 import Navbar from "@/components/navbar";
-import Tabs from "@/components/ui/tabs";
 import type { Metadata } from "next";
 export const metadata: Metadata = {
   title: "Dashboard | Nexora",

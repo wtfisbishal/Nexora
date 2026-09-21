@@ -1,6 +1,6 @@
 'use client';
 
-import { generateEmbeddings } from '@/ai/embeding';
+import { generateEmbeddings } from '@/embedings';
 import PdfUploader from '@/components/pdfupload';
 import { toastSuccess } from '@/lib/toast';
 import { useMutation, useQueryClient } from '@tanstack/react-query';
@@ -11,7 +11,7 @@ import { useSession } from 'next-auth/react';
 import Link from 'next/link';
 import { ArrowRight, FileText, LoaderCircle, Plus } from 'lucide-react';
 import { sources } from '@/lib/utils';
- 
+
 
 export default function DashBoardPage() {
   const { data } = useSession();
@@ -54,7 +54,7 @@ export default function DashBoardPage() {
       collectionName: string;
     }) => generateEmbeddings(textData, type, collectionName, "bot"),
     onSuccess: (result) => {
-      toastSuccess(result ? "Knowledge source added Queue!": "We could not add that source.");
+      toastSuccess(result ? "Knowledge source added Queue!" : "We could not add that source.");
       client.invalidateQueries({ queryKey: ["modelsinfo"] });
     },
   });
@@ -90,10 +90,10 @@ export default function DashBoardPage() {
             {data?.user?.name ? ` , ${data.user.name.split(" ")[0]}` : ""}.<br />
             <em>What should it learn today?</em>
           </h1>
-         
+
         </div>
 
-      </section> 
+      </section>
       <section className="dashboard-grid ">
         <div className="knowledge-area">
           <div className="dash-section-heading dash-reveal">
@@ -176,11 +176,11 @@ export default function DashBoardPage() {
               )
             )}
           </AnimatePresence>
-           
+
         </div>
 
         <aside className="dash-sidebar">
-           
+
           <div className="publish-card dash-card">
             <span className="dash-kicker">WHEN YOU’RE READY</span>
             <h3>

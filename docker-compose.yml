@@ -1,70 +1,69 @@
 name: nexora-dev
 
- 
 services:
-  # ── PostgreSQL ───────────────────────────────────────────────────────────────
-  postgres:
-    image: postgres:16-alpine
-    container_name: nexora-postgres
+  # ── Prometheus ────────────────────────────────────────────────────────────────
+  prometheus:
+    image: prom/prometheus:v2.53.0
+    container_name: nexora-prometheus
     restart: unless-stopped
-    environment:
-      POSTGRES_DB: nexora
-      POSTGRES_USER: nexora
-      POSTGRES_PASSWORD: nexora_dev_password
     ports:
-      - "5432:5432"
+      - "9090:9090"
     volumes:
-      - postgres_data:/var/lib/postgresql/data
+      - ./monitoring/prometheus.yml:/etc/prometheus/prometheus.yml:ro
+      # Bearer token file for scraping /api/metrics (create from METRICS_TOKEN env var)
+      - ./monitoring/metrics_token:/etc/prometheus/metrics_token:ro
+      - prometheus_data:/prometheus
+    command:
+      - '--config.file=/etc/prometheus/prometheus.yml'
+      - '--storage.tsdb.path=/prometheus'
+      - '--storage.tsdb.retention.time=15d'
+      - '--web.console.libraries=/etc/prometheus/console_libraries'
+      - '--web.console.templates=/etc/prometheus/consoles'
+      - '--web.enable-lifecycle'
     healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U nexora -d nexora"]
-      interval: 10s
-      timeout: 5s
-      retries: 5
-
-  # ── Redis ────────────────────────────────────────────────────────────────────
-  redis:
-    image: redis:7-alpine
-    container_name: nexora-redis
-    restart: unless-stopped
-    command: redis-server --appendonly yes --requirepass ""
-    ports:
-      - "6379:6379"
-    volumes:
-      - redis_data:/data
-    healthcheck:
-      test: ["CMD", "redis-cli", "ping"]
-      interval: 10s
-      timeout: 5s
-      retries: 5
-
-  # ── RedisInsight (Redis GUI) ─────────────────────────────────────────────────
-  redisinsight:
-    image: redis/redisinsight:latest
-    container_name: nexora-redisinsight
-    restart: unless-stopped
-    ports:
-      - "5540:5540"
-    depends_on:
-      redis:
-        condition: service_healthy
-
-  # ── Qdrant (Vector Database) ─────────────────────────────────────────────────
-  qdrant:
-    image: qdrant/qdrant:latest
-    container_name: nexora-qdrant
-    restart: unless-stopped
-    ports:
-      - "6333:6333"   # REST API
-      - "6334:6334"   # gRPC
-    volumes:
-      - qdrant_data:/qdrant/storage
-    healthcheck:
-      test: ["CMD", "curl", "-f", "http://localhost:6333/healthz"]
+      test: ["CMD", "wget", "-q", "--spider", "http://localhost:9090/-/healthy"]
       interval: 15s
-      timeout: 10s
-      retries: 5
+      timeout: 5s
+      retries: 3
+
+  # ── Grafana ───────────────────────────────────────────────────────────────────
+  grafana:
+    image: grafana/grafana:11.1.0
+    container_name: nexora-grafana
+    restart: unless-stopped
+    ports:
+      - "3001:3000"
+    environment:
+      GF_SECURITY_ADMIN_USER: admin
+      GF_SECURITY_ADMIN_PASSWORD: nexora_dev
+      GF_USERS_ALLOW_SIGN_UP: 'false'
+      GF_ANALYTICS_REPORTING_ENABLED: 'false'
+    volumes:
+      - ./monitoring/grafana/provisioning:/etc/grafana/provisioning:ro
+      - ./monitoring/grafana/dashboards:/etc/grafana/dashboards:ro
+      - grafana_data:/var/lib/grafana
+    depends_on:
+      prometheus:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD-SHELL", "wget -q --spider http://localhost:3000/api/health || exit 1"]
+      interval: 15s
+      timeout: 5s
+      retries: 3
+
+  # ── Prometheus Pushgateway (embedding worker metrics) ─────────────────────────
+  pushgateway:
+    image: prom/pushgateway:v1.9.0
+    container_name: nexora-pushgateway
+    restart: unless-stopped
+    ports:
+      - "9091:9091"
+    healthcheck:
+      test: ["CMD", "wget", "-q", "--spider", "http://localhost:9091/-/healthy"]
+      interval: 15s
+      timeout: 5s
+      retries: 3
 
 volumes:
-  postgres_data:
-  redis_data:
-  qdrant_data:
+  prometheus_data:
+  grafana_data:

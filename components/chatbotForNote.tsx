@@ -37,9 +37,7 @@ export default function NotebookChatbot({ collections, id }: { collections: stri
   }
   return (
     <div className="flex flex-col h-[95%] text-white rounded-lg shadow-lg p-4">
-      {/* Chat messages */}
-
-      {
+       {
         !collections && !id ? <h2 className=" text-gray-700 font-medium mx-auto mt-[250px] center gap-5"> <Plus /> Add a source to get started</h2> :
           (messages.length === 0 && <h2 className=" text-gray-700 font-medium mx-auto mt-[250px] center gap-5"> Ask anything about Contex...</h2>)
       }

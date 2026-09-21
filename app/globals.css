@@ -104,8 +104,7 @@ body {
   transition: transform 0.2s, box-shadow 0.2s;
 }
 .button:hover {
-  /* transform: translateY(2px); */
-  scale: 0.97;
+   scale: 0.97;
   @apply transition-all duration-500!;
   box-shadow: 0 0px 0.5px #17221d00;
 }
@@ -812,8 +811,7 @@ blockquote {
   max-width: 540px;
   margin: 13px 35px 0 0;
   overflow: hidden;
-}
-/* ── Scale section ── */
+} 
 .scale-section {
   min-height: 120vh;
    border-top: 1px solid var(--line);
@@ -1187,8 +1185,7 @@ footer small {
     left: -15%;
   }
 }
-
-/* Dashboard workspace */
+ 
 .dashboard-shell {
   max-width: 1400px;
   margin: 0 auto;
@@ -1534,6 +1531,7 @@ footer small {
 .tip-card,
 .publish-card {
   padding: 19px;
+  transform: translate(-30px, -80px) !important;
 }
 .side-head {
   display: flex;
@@ -1787,11 +1785,7 @@ footer small {
      background-position: 1000px;
   }
 }
-
-/* ============================================================
-   CHATBOT SHELL
-   ============================================================ */
-
+ 
 .chatbot-shell {
   display: flex;
   flex-direction: column;
@@ -1800,8 +1794,7 @@ footer small {
   background: transparent;
   font-family: 'Inter', 'Segoe UI', system-ui, sans-serif;
 }
-
-/* ---- Messages scroll area ---- */
+ 
 .chatbot-messages {
   flex: 1;
   overflow-y: auto;
@@ -1812,8 +1805,7 @@ footer small {
   scrollbar-width: thin;
   scrollbar-color: #d1d5db transparent;
 }
-
-/* ---- Individual chat row ---- */
+ 
 .chat-row {
   display: flex;
   align-items: flex-start;
@@ -1822,8 +1814,7 @@ footer small {
 .chat-row--user {
   flex-direction: row-reverse;
 }
-
-/* ---- Avatar dot for assistant ---- */
+ 
 .chat-avatar {
   flex-shrink: 0;
   width: 30px;
@@ -1838,8 +1829,7 @@ footer small {
   box-shadow: 0 2px 8px rgba(99,102,241,.30);
   margin-top: 2px;
 }
-
-/* ---- Bubbles ---- */
+ 
 .chat-bubble {
   max-width: 80%;
   border-radius: 18px;
@@ -1858,9 +1848,7 @@ footer small {
   padding: 12px 16px;
   border-bottom-left-radius: 4px;
   box-shadow: 0 1px 4px rgba(0,0,0,.08);
-}
-
-/* ---- Typing indicator ---- */
+} 
 .thinking-bubble {
   display: flex;
   align-items: center;
@@ -1883,10 +1871,7 @@ footer small {
   40%           { opacity: 1;  transform: scale(1);   }
 }
 
-/* ============================================================
-   PROSE (rendered markdown inside assistant bubble)
-   ============================================================ */
-
+ 
 .prose-message {
   font-size: 14px;
   line-height: 1.7;
@@ -1919,16 +1904,14 @@ footer small {
 .prose-message th         { background: #f3f4f6; font-weight: 600; padding: 6px 10px; text-align: left; border: 1px solid #e5e7eb; }
 .prose-message td         { padding: 6px 10px; border: 1px solid #e5e7eb; }
 .prose-message tr:nth-child(even) td { background: #fafafa; }
-
-/* ---- Links ---- */
+ 
 .chat-link {
   color: #6366f1;
   text-decoration: underline;
   text-underline-offset: 2px;
 }
 .chat-link:hover { color: #4f46e5; }
-
-/* ---- Inline code ---- */
+ 
 .inline-code {
   font-family: 'JetBrains Mono', 'Fira Code', 'Courier New', monospace;
   font-size: 12.5px;
@@ -1938,11 +1921,7 @@ footer small {
   border-radius: 4px;
   border: 1px solid #e2e8f0;
 }
-
-/* ============================================================
-   CODE BLOCKS
-   ============================================================ */
-
+ 
 .code-block-wrapper {
   border-radius: 10px;
   overflow: hidden;
@@ -1998,11 +1977,7 @@ footer small {
   font-size: 13px;
   line-height: 1.6;
 }
-
-/* ============================================================
-   INPUT BAR
-   ============================================================ */
-
+ 
 .chatbot-input-bar {
   display: flex;
   align-items: center;
@@ -2036,9 +2011,7 @@ footer small {
   transition: opacity .15s;
 }
 .chatbot-send-btn:disabled { opacity: .45; cursor: not-allowed; }
-
-/*  FOOTER*/
-
+ 
 .chatbot-footer {
   text-align: center;
   font-size: 11px;

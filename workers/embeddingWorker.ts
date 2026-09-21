@@ -9,6 +9,12 @@ import * as dotenv from 'dotenv';
 import * as cheerio from 'cheerio';
 import pdfParse from 'pdf-parse';
 import { YoutubeTranscript } from 'youtube-transcript';
+import {
+  embeddingJobsTotal,
+  embeddingDurationSeconds,
+  errorsTotal,
+  pushMetricsToGateway,
+} from '../lib/prometheus';
  
 dotenv.config({ path: '.env' });
  
@@ -162,6 +168,9 @@ const worker = new Worker<EmbeddingJobData>(
     log('info', `Processing job`, { jobId: job.id, modelId, type });
     const startTime = Date.now();
 
+    // Start Prometheus histogram timer for this job
+    const endPromTimer = embeddingDurationSeconds.startTimer({ type });
+
     try {
       let docs: Document[] = [];
 
@@ -208,9 +217,22 @@ const worker = new Worker<EmbeddingJobData>(
       const duration = Date.now() - startTime;
       log('info', `Job completed`, { jobId: job.id, modelId, type, durationMs: duration });
 
+      // ── Prometheus: record success metrics ──────────────────────────────────
+      endPromTimer();
+      embeddingJobsTotal.inc({ type, status: 'completed' });
+      // Push accumulated metrics to Pushgateway (fire-and-forget)
+      pushMetricsToGateway('nexora_worker').catch(() => {});
+
     } catch (error: unknown) {
       const message = error instanceof Error ? error.message : String(error);
       log('error', `Job failed`, { jobId: job.id, modelId, type, error: message });
+
+      // ── Prometheus: record failure metrics ──────────────────────────────────
+      endPromTimer();
+      embeddingJobsTotal.inc({ type, status: 'failed' });
+      errorsTotal.inc({ source: 'embedding_worker', code: 'job_failed' });
+      // Push accumulated metrics to Pushgateway (fire-and-forget)
+      pushMetricsToGateway('nexora_worker').catch(() => {});
 
       await prisma.models.update({
         where: { id: modelId },
@@ -238,8 +260,4 @@ worker.on('error', (err) => {
   log('error', 'Worker error', { error: err.message });
 });
 
-log('info', 'Embedding worker started', {
-  concurrency: parseInt(process.env.WORKER_CONCURRENCY || '5'),
-  maxGithubFiles: MAX_GITHUB_FILES,
-  maxPdfMB: MAX_PDF_SIZE_MB,
-});
+log('info', 'Embedding worker started' );

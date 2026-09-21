@@ -3,8 +3,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import metrics from '@/lib/metrics';
 
-export async function GET(req: NextRequest) {
-  // Simple bearer token auth — use a long random secret in production
+export async function GET(req: NextRequest) { 
   const adminSecret = process.env.ADMIN_SECRET;
   if (adminSecret) {
     const auth = req.headers.get('authorization');
