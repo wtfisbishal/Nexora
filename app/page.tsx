@@ -323,7 +323,7 @@ export default function Home() {
             <Tooltip
               contentStyle={{ background: '#17221d', border: 'none', borderRadius: 10, color: '#f6f5ef', fontSize: 12 }}
               itemStyle={{ color: '#cff45f' }}
-              formatter={(v: number) => [`${v.toLocaleString()} convos`, '']}
+              formatter={(v) => [`${(v as number)?.toLocaleString() ?? v} convos`, '']}
             />
             <Area type="monotone" dataKey="conversations" stroke="#97b246" strokeWidth={2.5} fill="url(#growthGrad)" dot={false} activeDot={{ r: 5, fill: '#17221d' }} />
           </AreaChart>
@@ -483,7 +483,7 @@ export default function Home() {
               </Pie>
               <Tooltip
                 contentStyle={{ background: '#0f1a14', border: 'none', borderRadius: 10, color: '#f6f5ef', fontSize: 12 }}
-                formatter={(v: number) => [`${v}%`, '']}
+                formatter={(v) => [`${v}%`, '']}
               />
               <Legend
                 iconType="circle"
