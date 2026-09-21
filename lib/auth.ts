@@ -29,14 +29,20 @@ export const authOptions: AuthOptions = {
   },
 
   callbacks: { 
+    async signIn({ user, account, profile }) {
+      return true;
+    },
+
     async jwt({ token, user }) {
+      if (user) {
+        token.sub = user.id;
+      }
       return token;
     },
 
     async session({ session, token, user }) {
       if (token?.sub && session.user) {
         session.user.id = token.sub
-        // session.user.id = user.id;      
       }
       return session
     },
