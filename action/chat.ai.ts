@@ -24,7 +24,7 @@ const qclient = new QdrantClient({
 const mem0Client = new MemoryClient({ apiKey: process.env.MEM0_API_KEY! });
 
 const openaiClient = new OpenAI({
-  baseURL: 'https://generativelanguage.googleapis.com/v1beta/openai/',
+  // baseURL: 'https://generativelanguage.googleapis.com/v1beta/openai/',
   apiKey: process.env.GEMINI_API_KEY!,
 });
 
@@ -43,49 +43,6 @@ type ChatRole = 'user' | 'assistant' | 'system';
 interface ChatMessage {
   role: ChatRole;
   content: string;
-}
- 
-async function checkQuota(modelId: string): Promise<{ allowed: boolean; reason?: string }> {
-  try {
-    const model = await prisma.models.findUnique({
-      where: { id: modelId },
-      select: { userId: true },
-    });
-
-    if (!model?.userId) return { allowed: true }; // widget with no user (public)
-
-    const plan = await prisma.plan.findUnique({
-      where: { userId: model.userId },
-      select: { monthlyQuota: true, monthlyUsed: true, quotaResetAt: true },
-    });
-
-    if (!plan) return { allowed: true }; // no plan record → allow (use free tier defaults)
-
-    // Reset monthly counter if the period has passed
-    if (new Date() > new Date(plan.quotaResetAt)) {
-      await prisma.plan.update({
-        where: { userId: model.userId },
-        data: {
-          monthlyUsed: 0,
-          quotaResetAt: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000),
-        },
-      });
-      return { allowed: true };
-    }
-
-    if (plan.monthlyUsed >= plan.monthlyQuota) {
-      quotaExceededTotal.inc();
-      return {
-        allowed: false,
-        reason: `Monthly quota of ${plan.monthlyQuota} conversations reached.`,
-      };
-    }
-
-    return { allowed: true };
-  } catch (err) {
-    logger.error('Quota check failed — failing open', { err, modelId });
-    return { allowed: true }; // fail open — don't block users if DB is slow
-  }
 }
  
 async function retrieveContext(query: string, collectionName: string): Promise<string> {
