@@ -25,7 +25,7 @@ const mem0Client = new MemoryClient({ apiKey: process.env.MEM0_API_KEY! });
 
 const openaiClient = new OpenAI({
   // baseURL: 'https://generativelanguage.googleapis.com/v1beta/openai/',
-  apiKey: process.env.OPENAI_API_KEY!,
+  apiKey: process.env.GEMINI_API_KEY!,
 });
 
 const embeddingsClient = new OpenAIEmbeddings({
